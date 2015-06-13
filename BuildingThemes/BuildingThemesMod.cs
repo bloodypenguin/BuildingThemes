@@ -7,14 +7,68 @@ using ColossalFramework.Plugins;
 using System.Text;
 using UnityEngine;
 using System.Reflection;
+using System.Threading;
+using ColossalFramework.Math;
 
 namespace BuildingThemes
 {
+
+
+    public class LevelUpExtension : LevelUpExtensionBase
+    {
+
+        public override ResidentialLevelUp OnCalculateResidentialLevelUp(ResidentialLevelUp levelUp,
+            int averageEducation, int landValue, ushort buildingID, Service service, SubService subService,
+            Level currentLevel)
+        {
+            BuildingManager buildingManager = Singleton<BuildingManager>.instance;
+            Building building = buildingManager.m_buildings.m_buffer[buildingID];
+            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateResidentialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            return levelUp;
+        }
+
+        public override OfficeLevelUp OnCalculateOfficeLevelUp(OfficeLevelUp levelUp, int averageEducation,
+            int serviceScore, ushort buildingID, Service service, SubService subService, Level currentLevel)
+        {
+            BuildingManager buildingManager = Singleton<BuildingManager>.instance;
+            Building building = buildingManager.m_buildings.m_buffer[buildingID];
+            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateOfficeLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            return levelUp;
+        }
+
+        public override CommercialLevelUp OnCalculateCommercialLevelUp(CommercialLevelUp levelUp, int averageWealth,
+            int landValue, ushort buildingID, Service service, SubService subService, Level currentLevel)
+        {
+           BuildingManager buildingManager = Singleton<BuildingManager>.instance;
+            Building building = buildingManager.m_buildings.m_buffer[buildingID];
+            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateCommercialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            return levelUp;
+        }
+
+        public override IndustrialLevelUp OnCalculateIndustrialLevelUp(IndustrialLevelUp levelUp, int averageEducation,
+            int serviceScore, ushort buildingID, Service service, SubService subService, Level currentLevel)
+        {
+            BuildingManager buildingManager = Singleton<BuildingManager>.instance;
+            Building building = buildingManager.m_buildings.m_buffer[buildingID];
+            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateIndustrialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            return levelUp;
+        }
+    }
+
+
+
     public class BuildingThemesMod : LoadingExtensionBase, IUserMod
     {
         public string Name
         {
-            get { return "Building Themes"; }
+            get
+            {
+                return "Building Themes";
+            }
         }
 
         public string Description
@@ -23,6 +77,19 @@ namespace BuildingThemes
         }
 
         private UIButton tab;
+
+        public override void OnCreated(ILoading loading)
+        {
+            base.OnCreated(loading);
+            DetoursHolder.InitTable();
+            ReplaceBuildingManager();
+
+            var methodInfo = typeof(ZoneBlock).GetMethod("SimulationStep", BindingFlags.Public | BindingFlags.Instance);
+            DetoursHolder.zoneBlockSimulationStepState = RedirectionHelper.RedirectCalls(
+                methodInfo,
+                typeof(DetoursHolder).GetMethod("ZoneBlockSimulationStep", BindingFlags.Public | BindingFlags.Instance)
+                );
+        }
 
         public override void OnLevelLoaded(LoadMode mode) 
         {
@@ -33,9 +100,6 @@ namespace BuildingThemes
 
             // Hook into policies GUI
             ToolsModifierControl.policiesPanel.component.eventVisibilityChanged += OnPoliciesPanelVisibilityChanged;
-
-            // Replace BuildingManager. Credits to Traffic++ developers ;)
-            ReplaceBuildingManager();
         }
 
         public override void OnLevelUnloading()

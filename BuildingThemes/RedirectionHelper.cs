@@ -54,6 +54,14 @@ namespace BuildingThemes
             return PatchJumpTo(fptr1, fptr2);
         }
 
+        public static RedirectCallsState RedirectCalls(RuntimeMethodHandle from, RuntimeMethodHandle to)
+        {
+            // GetFunctionPointer enforces compilation of the method.
+            var fptr1 = from.GetFunctionPointer();
+            var fptr2 = to.GetFunctionPointer();
+            return PatchJumpTo(fptr1, fptr2);
+        }
+
         public static void RevertRedirect(MethodInfo from, RedirectCallsState state)
         {
             var fptr1 = from.MethodHandle.GetFunctionPointer();
