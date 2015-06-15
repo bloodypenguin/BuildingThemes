@@ -74,7 +74,7 @@ namespace BuildingThemes
         /// </summary>
         /// <param name="site"></param>
         /// <param name="target"></param>
-        private static RedirectCallsState PatchJumpTo(IntPtr site, IntPtr target)
+        public static RedirectCallsState PatchJumpTo(IntPtr site, IntPtr target)
         {
             RedirectCallsState state = new RedirectCallsState();
 
@@ -100,7 +100,7 @@ namespace BuildingThemes
             return state;
         }
 
-        private static void RevertJumpTo(IntPtr site, RedirectCallsState state)
+        public static void RevertJumpTo(IntPtr site, RedirectCallsState state)
         {
             unsafe
             {

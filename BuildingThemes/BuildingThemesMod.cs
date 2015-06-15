@@ -7,6 +7,7 @@ using ColossalFramework.Plugins;
 using System.Text;
 using UnityEngine;
 using System.Reflection;
+using System.Resources;
 using System.Threading;
 using ColossalFramework.Math;
 
@@ -23,8 +24,11 @@ namespace BuildingThemes
         {
             BuildingManager buildingManager = Singleton<BuildingManager>.instance;
             Building building = buildingManager.m_buildings.m_buffer[buildingID];
-            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateResidentialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
-            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            if (BuildingThemesMod.isDebug)
+            {
+                UnityEngine.Debug.LogFormat("Building Themes: OnCalculateResidentialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            }
+            DetoursHolder.position = building.m_position;
             return levelUp;
         }
 
@@ -33,8 +37,14 @@ namespace BuildingThemes
         {
             BuildingManager buildingManager = Singleton<BuildingManager>.instance;
             Building building = buildingManager.m_buildings.m_buffer[buildingID];
-            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateOfficeLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
-            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            if (BuildingThemesMod.isDebug)
+            {
+
+                UnityEngine.Debug.LogFormat(
+                    "Building Themes: OnCalculateOfficeLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}",
+                    buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            }
+            DetoursHolder.position = building.m_position;
             return levelUp;
         }
 
@@ -43,8 +53,14 @@ namespace BuildingThemes
         {
            BuildingManager buildingManager = Singleton<BuildingManager>.instance;
             Building building = buildingManager.m_buildings.m_buffer[buildingID];
-            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateCommercialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
-            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            if (BuildingThemesMod.isDebug)
+            {
+
+                UnityEngine.Debug.LogFormat(
+                    "Building Themes: OnCalculateCommercialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}",
+                    buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            }
+            DetoursHolder.position = building.m_position;
             return levelUp;
         }
 
@@ -53,8 +69,14 @@ namespace BuildingThemes
         {
             BuildingManager buildingManager = Singleton<BuildingManager>.instance;
             Building building = buildingManager.m_buildings.m_buffer[buildingID];
-            UnityEngine.Debug.LogFormat("Building Themes: OnCalculateIndustrialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}", buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
-            DetoursHolder.position = DetoursHolder.Position.Build(building.m_position);
+            if (BuildingThemesMod.isDebug)
+            {
+
+                UnityEngine.Debug.LogFormat(
+                    "Building Themes: OnCalculateIndustrialLevelUp. buildingID: {0}, target level: {1}, position: {2}. current thread: {3}",
+                    buildingID, levelUp.targetLevel, building.m_position, Thread.CurrentThread.ManagedThreadId);
+            }
+            DetoursHolder.position = building.m_position;
             return levelUp;
         }
     }
@@ -63,6 +85,9 @@ namespace BuildingThemes
 
     public class BuildingThemesMod : LoadingExtensionBase, IUserMod
     {
+
+        public static bool isDebug = false;
+
         public string Name
         {
             get
@@ -84,10 +109,19 @@ namespace BuildingThemes
             DetoursHolder.InitTable();
             ReplaceBuildingManager();
 
-            var methodInfo = typeof(ZoneBlock).GetMethod("SimulationStep", BindingFlags.Public | BindingFlags.Instance);
-            DetoursHolder.zoneBlockSimulationStepState = RedirectionHelper.RedirectCalls(
-                methodInfo,
-                typeof(DetoursHolder).GetMethod("ZoneBlockSimulationStep", BindingFlags.Public | BindingFlags.Instance)
+            DetoursHolder.zoneBlockSimulationStep = typeof(ZoneBlock).GetMethod("SimulationStep", BindingFlags.Public | BindingFlags.Instance);
+            DetoursHolder.zoneBlockSimulationStepPtr = DetoursHolder.zoneBlockSimulationStep.MethodHandle.GetFunctionPointer();
+            DetoursHolder.zoneBlockSimulationStepDetourPtr = typeof(DetoursHolder).GetMethod("ZoneBlockSimulationStep", BindingFlags.Public | BindingFlags.Instance).MethodHandle.GetFunctionPointer();
+            DetoursHolder.zoneBlockSimulationStepState = RedirectionHelper.PatchJumpTo(
+                DetoursHolder.zoneBlockSimulationStepPtr,
+                DetoursHolder.zoneBlockSimulationStepDetourPtr
+                );
+            DetoursHolder.resourceManagerAddResource = typeof(ImmaterialResourceManager).GetMethod("AddResource", new[] { typeof(ImmaterialResourceManager.Resource), typeof(int), typeof(Vector3), typeof(float) });
+            DetoursHolder.resourceManagerAddResourcePtr = DetoursHolder.resourceManagerAddResource.MethodHandle.GetFunctionPointer();
+            DetoursHolder.resourceManagerAddResourceDetourPtr = typeof(DetoursHolder).GetMethod("ImmaterialResourceManagerAddResource").MethodHandle.GetFunctionPointer();
+            DetoursHolder.resourceManagerAddResourceState = RedirectionHelper.PatchJumpTo(
+                DetoursHolder.resourceManagerAddResourcePtr,
+                DetoursHolder.resourceManagerAddResourceDetourPtr
                 );
         }
 
